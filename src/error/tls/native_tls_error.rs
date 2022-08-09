@@ -5,7 +5,7 @@ use std::fmt::Display;
 #[derive(Debug)]
 pub enum TlsError {
     TlsError(native_tls::Error),
-    TlsHandshakeError(native_tls::HandshakeError<std::net::TcpStream>),
+    TlsHandshakeError(native_tls::HandshakeError<lunatic::net::TcpStream>),
 }
 
 impl From<TlsError> for super::super::Error {
@@ -20,8 +20,8 @@ impl From<native_tls::Error> for super::super::Error {
     }
 }
 
-impl From<native_tls::HandshakeError<std::net::TcpStream>> for super::super::Error {
-    fn from(err: native_tls::HandshakeError<std::net::TcpStream>) -> super::super::Error {
+impl From<native_tls::HandshakeError<lunatic::net::TcpStream>> for super::super::Error {
+    fn from(err: native_tls::HandshakeError<lunatic::net::TcpStream>) -> super::super::Error {
         super::super::Error::TlsError(TlsError::TlsHandshakeError(err))
     }
 }

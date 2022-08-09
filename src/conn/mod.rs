@@ -40,9 +40,6 @@ use std::{
     sync::Arc,
 };
 
-#[cfg(unix)]
-use std::os::unix::io::{AsRawFd, RawFd};
-
 use crate::{
     buffer_pool::{get_buffer, Buffer},
     conn::{
@@ -297,14 +294,7 @@ impl Conn {
     #[allow(unused_assignments)]
     fn can_improved(&mut self) -> Result<Option<Opts>> {
         if self.0.opts.get_prefer_socket() && self.0.opts.addr_is_loopback() {
-            let mut socket = None;
-            #[cfg(test)]
-            {
-                socket = self.0.opts.0.injected_socket.clone();
-            }
-            if socket.is_none() {
-                socket = self.get_system_var("socket")?.map(from_value::<String>);
-            }
+            let socket = self.get_system_var("socket")?.map(from_value::<String>);
             if let Some(socket) = socket {
                 if self.0.opts.get_socket().is_none() {
                     let socket_opts = OptsBuilder::from_opts(self.0.opts.clone());
@@ -397,18 +387,13 @@ impl Conn {
         let read_timeout = opts.get_read_timeout().cloned();
         let write_timeout = opts.get_write_timeout().cloned();
         let tcp_keepalive_time = opts.get_tcp_keepalive_time_ms();
-        #[cfg(any(target_os = "linux", target_os = "macos",))]
-        let tcp_keepalive_probe_interval_secs = opts.get_tcp_keepalive_probe_interval_secs();
-        #[cfg(any(target_os = "linux", target_os = "macos",))]
-        let tcp_keepalive_probe_count = opts.get_tcp_keepalive_probe_count();
-        #[cfg(target_os = "linux")]
-        let tcp_user_timeout = opts.get_tcp_user_timeout_ms();
         let tcp_nodelay = opts.get_tcp_nodelay();
         let tcp_connect_timeout = opts.get_tcp_connect_timeout();
         let bind_address = opts.bind_address().cloned();
-        let stream = if let Some(socket) = opts.get_socket() {
-            Stream::connect_socket(&*socket, read_timeout, write_timeout)?
-        } else {
+        // let stream = if let Some(socket) = opts.get_socket() {
+        //     Stream::connect_socket(&*socket, read_timeout, write_timeout)?
+        // } else {
+        let stream = {
             let port = opts.get_tcp_port();
             let ip_or_hostname = match opts.get_host() {
                 url::Host::Domain(domain) => domain,
@@ -421,13 +406,6 @@ impl Conn {
                 read_timeout,
                 write_timeout,
                 tcp_keepalive_time,
-                #[cfg(any(target_os = "linux", target_os = "macos",))]
-                tcp_keepalive_probe_interval_secs,
-                #[cfg(any(target_os = "linux", target_os = "macos",))]
-                tcp_keepalive_probe_count,
-                #[cfg(target_os = "linux")]
-                tcp_user_timeout,
-                tcp_nodelay,
                 tcp_connect_timeout,
                 bind_address,
             )?
@@ -1147,13 +1125,6 @@ impl Conn {
     }
 }
 
-#[cfg(unix)]
-impl AsRawFd for Conn {
-    fn as_raw_fd(&self) -> RawFd {
-        self.stream_ref().get_ref().as_raw_fd()
-    }
-}
-
 impl Queryable for Conn {
     fn query_iter<T: AsRef<str>>(&mut self, query: T) -> Result<QueryResult<'_, '_, '_, Text>> {
         let meta = self._query(query.as_ref())?;
@@ -1198,6 +1169,7 @@ impl Drop for Conn {
     }
 }
 
+#[cfg(not(target_os = "wasi"))]
 #[cfg(test)]
 #[allow(non_snake_case)]
 mod test {

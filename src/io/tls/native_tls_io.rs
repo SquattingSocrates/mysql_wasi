@@ -9,7 +9,7 @@ use bufstream::BufStream;
 use native_tls::{Certificate, TlsConnector};
 
 use crate::{
-    io::{Stream, TcpStream},
+    io::{Stream, TcpStreamWrapper},
     Result, SslOpts,
 };
 
@@ -56,7 +56,7 @@ impl Stream {
         let tls_connector = builder.build()?;
         match self {
             Stream::TcpStream(tcp_stream) => match tcp_stream {
-                TcpStream::Insecure(insecure_stream) => {
+                TcpStreamWrapper::Insecure(insecure_stream) => {
                     let inner = insecure_stream.into_inner().map_err(io::Error::from)?;
                     let secure_stream = tls_connector.connect(&domain, inner)?;
                     Ok(Stream::TcpStream(TcpStream::Secure(BufStream::new(

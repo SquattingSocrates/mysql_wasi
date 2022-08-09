@@ -86,7 +86,7 @@ impl Stream {
 
         match self {
             Stream::TcpStream(tcp_stream) => match tcp_stream {
-                TcpStream::Insecure(insecure_stream) => {
+                TcpStreamWrapper::Insecure(insecure_stream) => {
                     let inner = insecure_stream
                         .into_inner()
                         .map_err(io::Error::from)
